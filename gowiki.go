@@ -9,11 +9,16 @@ import (
 
 // templates pre-loads all html templates at startup
 // this will panic if an error occurs and will exit the program
-var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
+var templates = template.Must(template.ParseFiles("tmpl/edit.html", "tmpl/view.html"))
 
 // validPath sets regular expression matcher for valid endpoints of our program
 // this is to prevent any file being able to be read/written to our server
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
+
+// rootHandler redirects root path to /view/FrontPage
+func rootHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/view/FrontPage", http.StatusFound)
+}
 
 // viewHandler loads wiki page and renders it in browser
 // via the url pattern: /view/{Page.Title}
@@ -82,14 +87,14 @@ type Page struct {
 // save creates/updates a .txt file, named after this Page's Title
 // and puts its Body as the file contents
 func (p *Page) save() error {
-	filename := p.Title + ".txt"
+	filename := "data/" + p.Title + ".txt"
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
 
 // loadPage constructs a .txt file name from the provided title,
 // and loads the contents of that file (along with the title) into a Page
 func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
+	filename := "data/" + title + ".txt"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -98,6 +103,7 @@ func loadPage(title string) (*Page, error) {
 }
 
 func main() {
+	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
